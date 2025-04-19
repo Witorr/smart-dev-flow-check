@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import Header from "@/components/Header";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
 const projectTypes = ["Frontend", "Backend", "Full Stack", "Mobile"];
 
@@ -21,6 +22,7 @@ const suggestedTechnologies = [
 
 const CreateProject = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [technologies, setTechnologies] = useState<string[]>([]);
@@ -38,7 +40,7 @@ const CreateProject = () => {
     setTechnologies(technologies.filter(t => t !== tech));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name || !type || technologies.length === 0) {
@@ -47,11 +49,47 @@ const CreateProject = () => {
     
     setIsSubmitting(true);
     
-    // Simulate creating a project
-    setTimeout(() => {
+    try {
+      // Obter o usuário atual
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Criar o projeto
+      const { data, error } = await supabase
+        .from('projects')
+        .insert([
+          {
+            name,
+            type,
+            technologies,
+            progress: 0,
+            user_id: user.id,
+            created_at: new Date().toISOString()
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Projeto criado com sucesso!",
+        description: "Você será redirecionado para o dashboard.",
+      });
+
       navigate("/dashboard");
+    } catch (error: any) {
+      toast({
+        title: "Erro ao criar projeto",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   return (

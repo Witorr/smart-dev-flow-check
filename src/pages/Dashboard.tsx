@@ -1,62 +1,65 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Header from "@/components/Header";
 import ProjectCard, { Project } from "@/components/ProjectCard";
 import { PlusIcon, Search, Filter } from "lucide-react";
-
-// Mock projects data
-const mockProjects: Project[] = [
-  {
-    id: "1",
-    name: "E-commerce App",
-    type: "Full Stack",
-    technologies: ["React", "Node.js", "MongoDB"],
-    progress: 75,
-    createdAt: "12 abril 2023"
-  },
-  {
-    id: "2",
-    name: "Blog API",
-    type: "Backend",
-    technologies: ["Express", "PostgreSQL", "TypeScript"],
-    progress: 40,
-    createdAt: "23 março 2023"
-  },
-  {
-    id: "3",
-    name: "Aplicativo de Finanças",
-    type: "Mobile",
-    technologies: ["React Native", "Firebase"],
-    progress: 90,
-    createdAt: "5 maio 2023"
-  },
-  {
-    id: "4",
-    name: "Landing Page Corporativa",
-    type: "Frontend",
-    technologies: ["Vue.js", "TailwindCSS"],
-    progress: 60,
-    createdAt: "17 junho 2023"
-  }
-];
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [projects] = useState<Project[]>(mockProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredProjects = projects.filter(project => 
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setProjects(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar projetos",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    project.technologies.some(tech => tech.toLowerCase().includes(searchQuery.toLowerCase()))
+    project.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    project.technologies.some(tech =>
+      tech.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   );
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 container py-6 space-y-6 animate-fade-in">
+      <main className="container mx-auto py-6 space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Meus Projetos</h1>
@@ -89,14 +92,20 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {filteredProjects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-60 p-8 text-center">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-60">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
+          </div>
+        ) : filteredProjects.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-60 p-8 text-center bg-card rounded-lg border">
             <div className="rounded-full bg-muted p-3 mb-4">
               <Search className="h-6 w-6 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-medium">Nenhum projeto encontrado</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Tente mudar os termos da busca ou crie um novo projeto.
+              {searchQuery 
+                ? "Tente mudar os termos da busca."
+                : "Comece criando seu primeiro projeto."}
             </p>
             <Button 
               className="mt-4 bg-brand-500 hover:bg-brand-600"

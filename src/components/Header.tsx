@@ -1,22 +1,43 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LogOut, Menu, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
+import { useEffect } from "react";
 
 interface HeaderProps {
   userEmail?: string;
 }
 
-const Header = ({ userEmail = "usuario@email.com" }: HeaderProps) => {
+const Header = ({ userEmail: propUserEmail }: HeaderProps) => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState(propUserEmail || "");
   
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    navigate("/login");
+  useEffect(() => {
+    const getUserEmail = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserEmail(user.email || "");
+      }
+    };
+    
+    if (!propUserEmail) {
+      getUserEmail();
+    }
+  }, [propUserEmail]);
+  
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   return (

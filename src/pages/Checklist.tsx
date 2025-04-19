@@ -1,194 +1,205 @@
-
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
+import ChecklistItem, { Task } from "@/components/ChecklistItem";
+import { supabase } from "@/lib/supabase";
+import { useParams } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
-import ChecklistItem from "@/components/ChecklistItem";
-import { Upload, Share2, CheckCircle2 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-
-interface ChecklistTask {
-  id: string;
-  title: string;
-  description?: string;
-  isCompleted: boolean;
-  category: "setup" | "development" | "deployment";
-}
-
-// Mock checklist tasks
-const mockTasks: ChecklistTask[] = [
-  {
-    id: "1",
-    title: "Configurar ambiente de desenvolvimento",
-    description: "Instalar Node.js, Git e ferramentas necessárias",
-    isCompleted: true,
-    category: "setup"
-  },
-  {
-    id: "2",
-    title: "Inicializar repositório Git",
-    description: "Criar .gitignore e fazer commit inicial",
-    isCompleted: true,
-    category: "setup"
-  },
-  {
-    id: "3",
-    title: "Configurar ESLint e Prettier",
-    description: "Definir regras de formatação de código",
-    isCompleted: false,
-    category: "setup"
-  },
-  {
-    id: "4",
-    title: "Criar estrutura de diretórios",
-    description: "Organizar arquivos e pastas do projeto",
-    isCompleted: false,
-    category: "setup"
-  },
-  {
-    id: "5",
-    title: "Implementar autenticação de usuários",
-    description: "Login, registro e recuperação de senha",
-    isCompleted: false,
-    category: "development"
-  },
-  {
-    id: "6",
-    title: "Criar componentes de interface",
-    description: "Botões, formulários, cards, etc.",
-    isCompleted: false,
-    category: "development"
-  },
-  {
-    id: "7",
-    title: "Implementar gerenciamento de estado",
-    description: "Configurar Redux, Context API ou outra solução",
-    isCompleted: false,
-    category: "development"
-  },
-  {
-    id: "8",
-    title: "Configurar servidor de produção",
-    description: "Preparar ambiente para deploy",
-    isCompleted: false,
-    category: "deployment"
-  },
-  {
-    id: "9",
-    title: "Configurar CI/CD",
-    description: "Automação de testes e deploy",
-    isCompleted: false,
-    category: "deployment"
-  }
-];
 
 const Checklist = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { projectId } = useParams<{ projectId: string }>();
+  const { isAuthenticated, signOut } = useAuth();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projectName, setProjectName] = useState("");
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
+  const [newTaskCategory, setNewTaskCategory] = useState("feature");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
-  
-  const [tasks, setTasks] = useState<ChecklistTask[]>(mockTasks);
-  const [progress, setProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState<string>("all");
-  const [projectName, setProjectName] = useState("E-commerce App");
-  
+
+  const loadProjectData = useCallback(async () => {
+    if (!projectId || !isAuthenticated) return;
+
+    try {
+      // Load project details
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('name')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) throw projectError;
+      if (projectData) {
+        setProjectName(projectData.name);
+      }
+
+      // Load tasks
+      const { data: tasksData, error: tasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
+
+      if (tasksError) throw tasksError;
+      setTasks(tasksData || []);
+    } catch (error) {
+      console.error('Error loading project data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load project data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [projectId, isAuthenticated, toast]);
+
   useEffect(() => {
-    // Calculate progress percentage
-    const completedTasks = tasks.filter(task => task.isCompleted).length;
-    const progressPercentage = Math.round((completedTasks / tasks.length) * 100);
-    setProgress(progressPercentage);
-  }, [tasks]);
-  
-  const handleToggleTask = (taskId: string, isCompleted: boolean) => {
-    setTasks(
-      tasks.map(task =>
-        task.id === taskId ? { ...task, isCompleted } : task
-      )
-    );
-  };
-  
-  const filteredTasks = tasks.filter(task => 
-    activeTab === "all" || task.category === activeTab
-  );
+    if (isInitialized) return;
+    
+    const initialize = async () => {
+      if (!isAuthenticated || !projectId) return;
+      
+      await loadProjectData();
+      setIsInitialized(true);
+    };
 
-  const handleShare = () => {
-    toast({
-      title: "Link copiado!",
-      description: "O link do checklist foi copiado para a área de transferência.",
-    });
+    initialize();
+  }, [isAuthenticated, projectId, loadProjectData, isInitialized]);
+
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) {
+      toast({
+        title: "Error",
+        description: "Task title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!projectId) {
+      toast({
+        title: "Error",
+        description: "No project ID provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({
+          project_id: projectId,
+          user_id: user.id,
+          title: newTaskTitle.trim(),
+          description: newTaskDescription.trim(),
+          category: newTaskCategory,
+          is_completed: false,
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      setTasks([data, ...tasks]);
+      setNewTaskTitle("");
+      setNewTaskDescription("");
+      setNewTaskCategory("feature");
+      toast({
+        title: "Success",
+        description: "Task added successfully!",
+      });
+    } catch (error) {
+      console.error('Error adding task:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error 
+          ? `Error: ${error.message}` 
+          : "Failed to add task. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleUpload = () => {
-    toast({
-      title: "Upload de arquivo",
-      description: "Funcionalidade de upload será implementada em breve.",
-    });
+  const handleToggleTask = (task: Task, isCompleted: boolean) => {
+    setTasks(tasks.map(t => t.id === task.id ? { ...task, is_completed: isCompleted } : t));
   };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 container py-6 animate-fade-in">
-        <div className="max-w-3xl mx-auto">
-          <Button 
-            variant="ghost" 
-            className="mb-4"
-            onClick={() => navigate("/dashboard")}
-          >
-            ← Voltar para o Dashboard
-          </Button>
-          
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <main className="flex-1 container py-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">{projectName}</h1>
-              <div className="flex items-center mt-2">
-                <Progress value={progress} className="h-2 flex-1" />
-                <span className="ml-3 text-sm font-medium">{progress}%</span>
-              </div>
+              <h1 className="text-3xl font-bold">{projectName || "Project Tasks"}</h1>
+              {projectName && (
+                <p className="text-muted-foreground">Manage tasks for this project</p>
+              )}
             </div>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="icon" onClick={handleUpload}>
-                <Upload className="h-4 w-4" />
-                <span className="sr-only">Upload</span>
-              </Button>
-              <Button variant="outline" size="icon" onClick={handleShare}>
-                <Share2 className="h-4 w-4" />
-                <span className="sr-only">Compartilhar</span>
-              </Button>
-            </div>
+            <Button 
+              onClick={() => window.location.href = "/dashboard"} 
+              variant="outline"
+            >
+              Back to Dashboard
+            </Button>
           </div>
-          
-          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="mb-6">
-            <TabsList>
-              <TabsTrigger value="all">Todos</TabsTrigger>
-              <TabsTrigger value="setup">Configuração</TabsTrigger>
-              <TabsTrigger value="development">Desenvolvimento</TabsTrigger>
-              <TabsTrigger value="deployment">Deploy</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          
-          <div className="space-y-1">
-            {filteredTasks.length === 0 ? (
-              <div className="py-12 flex flex-col items-center justify-center text-center">
-                <CheckCircle2 className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">Nenhuma tarefa encontrada</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Não há tarefas disponíveis para esta categoria.
-                </p>
-              </div>
-            ) : (
-              filteredTasks.map((task) => (
-                <ChecklistItem
-                  key={task.id}
-                  id={task.id}
-                  title={task.title}
-                  description={task.description}
-                  isCompleted={task.isCompleted}
-                  onToggle={handleToggleTask}
-                />
-              ))
+
+          <form onSubmit={handleAddTask} className="space-y-4 mb-8">
+            <Input
+              placeholder="Task title"
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              required
+            />
+            <Textarea
+              placeholder="Task description (optional)"
+              value={newTaskDescription}
+              onChange={(e) => setNewTaskDescription(e.target.value)}
+            />
+            <Select value={newTaskCategory} onValueChange={setNewTaskCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="feature">Feature</SelectItem>
+                <SelectItem value="bug">Bug</SelectItem>
+                <SelectItem value="improvement">Improvement</SelectItem>
+                <SelectItem value="documentation">Documentation</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button type="submit" disabled={isLoading || !newTaskTitle.trim()}>
+              {isLoading ? "Adding..." : "Add Task"}
+            </Button>
+          </form>
+
+          <div className="space-y-2">
+            {tasks.map((task) => (
+              <ChecklistItem
+                key={task.id}
+                task={task}
+                onToggle={handleToggleTask}
+              />
+            ))}
+            {tasks.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">
+                No tasks yet. Add your first task above!
+              </p>
             )}
           </div>
         </div>

@@ -1,8 +1,7 @@
-
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Calendar } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface Project {
   id: string;
@@ -10,7 +9,8 @@ export interface Project {
   type: "Frontend" | "Backend" | "Full Stack" | "Mobile";
   technologies: string[];
   progress: number;
-  createdAt: string;
+  created_at: string;
+  user_id: string;
 }
 
 interface ProjectCardProps {
@@ -18,7 +18,7 @@ interface ProjectCardProps {
 }
 
 const ProjectCard = ({ project }: ProjectCardProps) => {
-  const navigate = useNavigate();
+  const { navigateToProject } = useAuth();
 
   const getBadgeVariant = (type: string) => {
     switch (type) {
@@ -35,8 +35,17 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
   const handleClick = () => {
-    navigate(`/project/${project.id}`);
+    navigateToProject(project.id);
   };
 
   return (
@@ -53,7 +62,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
         </div>
         <CardDescription className="flex items-center mt-1">
           <Calendar className="h-3.5 w-3.5 mr-1.5" /> 
-          <span>{project.createdAt}</span>
+          <span>{formatDate(project.created_at)}</span>
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">

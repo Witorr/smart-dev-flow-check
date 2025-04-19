@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,28 +5,65 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { EyeIcon, EyeOffIcon, LogInIcon } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/useAuth";
+import { FaGoogle, FaGithub } from 'react-icons/fa'
+import '@/styles/auth.css'
 
 const Login = () => {
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
-    
-    // Simulate login - this would be replaced with actual authentication
-    setTimeout(() => {
-      localStorage.setItem("isAuthenticated", "true");
-      navigate("/dashboard");
+
+    try {
+      await signIn(email, password);
+    } catch (error: any) {
+      setError(error.message || 'Failed to sign in');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      setError(error.message || 'Failed to sign in with Google');
+    }
+  };
+
+  const handleGithubLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      setError(error.message || 'Failed to sign in with GitHub');
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted animate-fade-in">
+    <div className="auth-container">
       <Card className="w-full max-w-md card-shadow animate-slide-up">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-2">
@@ -41,7 +77,8 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="auth-form space-y-4">
+            {error && <p className="text-sm text-red-500">{error}</p>}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -89,6 +126,33 @@ const Login = () => {
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <Separator />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                ou
+              </span>
+            </div>
+          </div>
+          <div className="social-buttons">
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="social-button google"
+            >
+              <FaGoogle /> Google
+            </button>
+            
+            <button
+              type="button"
+              onClick={handleGithubLogin}
+              className="social-button github"
+            >
+              <FaGithub /> GitHub
+            </button>
+          </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="relative w-full flex items-center justify-center">
