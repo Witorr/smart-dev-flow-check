@@ -75,6 +75,18 @@ const CreateProject = () => {
 
       if (error) throw error;
 
+      // Notificar o Slack
+      try {
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/smart-checklist/slack-notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectName: name, creator: user.email || user.id })
+        });
+      } catch (err) {
+        // Não bloquear criação se Slack falhar
+        console.warn('Falha ao notificar Slack:', err);
+      }
+
       toast({
         title: "Projeto criado com sucesso!",
         description: "Você será redirecionado para o dashboard.",

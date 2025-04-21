@@ -18,8 +18,11 @@ const Checklist = () => {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskCategory, setNewTaskCategory] = useState("feature");
+  const [newTaskStartDate, setNewTaskStartDate] = useState("");
+  const [newTaskEndDate, setNewTaskEndDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const loadProjectData = useCallback(async () => {
@@ -73,62 +76,48 @@ const Checklist = () => {
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) {
-      toast({
-        title: "Error",
-        description: "Task title is required",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Task title is required", variant: "destructive" });
       return;
     }
-
+    if (!newTaskStartDate || !newTaskEndDate) {
+      toast({ title: "Error", description: "Start and end date are required.", variant: "destructive" });
+      return;
+    }
     if (!projectId) {
-      toast({
-        title: "Error",
-        description: "No project ID provided.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "No project ID provided.", variant: "destructive" });
       return;
     }
-
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
-
       const { data, error } = await supabase
         .from('tasks')
         .insert({
+          title: newTaskTitle,
+          description: newTaskDescription,
+          category: newTaskCategory,
           project_id: projectId,
           user_id: user.id,
-          title: newTaskTitle.trim(),
-          description: newTaskDescription.trim(),
-          category: newTaskCategory,
           is_completed: false,
-          updated_at: new Date().toISOString()
+          start_date: newTaskStartDate,
+          end_date: newTaskEndDate
         })
         .select()
         .single();
-
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
-
+      if (error) throw error;
       setTasks([data, ...tasks]);
       setNewTaskTitle("");
       setNewTaskDescription("");
       setNewTaskCategory("feature");
-      toast({
-        title: "Success",
-        description: "Task added successfully!",
-      });
+      setNewTaskStartDate("");
+      setNewTaskEndDate("");
+      toast({ title: "Success", description: "Task added successfully!" });
     } catch (error) {
       console.error('Error adding task:', error);
       toast({
         title: "Error",
-        description: error instanceof Error 
-          ? `Error: ${error.message}` 
-          : "Failed to add task. Please try again.",
+        description: error instanceof Error ? `Error: ${error.message}` : "Failed to add task. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -136,9 +125,98 @@ const Checklist = () => {
     }
   };
 
-  const handleToggleTask = (task: Task, isCompleted: boolean) => {
-    setTasks(tasks.map(t => t.id === task.id ? { ...task, is_completed: isCompleted } : t));
+  const handleEditTask = (task: Task) => {
+    setEditingTaskId(task.id);
+    setNewTaskTitle(task.title);
+    setNewTaskDescription(task.description || "");
+    setNewTaskCategory(task.category);
+    setNewTaskStartDate(task.start_date || "");
+    setNewTaskEndDate(task.end_date || "");
   };
+
+  const handleUpdateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTaskId) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          title: newTaskTitle,
+          description: newTaskDescription,
+          category: newTaskCategory,
+          start_date: newTaskStartDate,
+          end_date: newTaskEndDate,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editingTaskId);
+      if (error) throw error;
+      setTasks(tasks.map(t => t.id === editingTaskId ? {
+        ...t,
+        title: newTaskTitle,
+        description: newTaskDescription,
+        category: newTaskCategory,
+        start_date: newTaskStartDate,
+        end_date: newTaskEndDate
+      } : t));
+      setEditingTaskId(null);
+      setNewTaskTitle("");
+      setNewTaskDescription("");
+      setNewTaskCategory("feature");
+      setNewTaskStartDate("");
+      setNewTaskEndDate("");
+      toast({ title: "Task atualizada!" });
+    } catch (error) {
+      toast({ title: "Erro ao atualizar task", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleTask = async (task: Task, isCompleted: boolean) => {
+    setTasks(tasks.map(t => t.id === task.id ? { ...task, is_completed: isCompleted } : t));
+    try {
+      // Atualiza o status da task no banco
+      const { error: updateError } = await supabase
+        .from('tasks')
+        .update({
+          is_completed: isCompleted,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', task.id);
+      if (updateError) throw updateError;
+
+      // Busca todas as tasks do projeto
+      const { data: allTasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('project_id', projectId);
+      if (tasksError) throw tasksError;
+
+      const totalTasks = allTasks.length;
+      const completedTasks = allTasks.filter((t: any) => t.is_completed).length;
+      const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+      // Atualiza o campo progress do projeto
+      const { error: projectError } = await supabase
+        .from('projects')
+        .update({ progress })
+        .eq('id', projectId);
+      if (projectError) throw projectError;
+
+      // Notifica atualização de progresso para o dashboard
+      localStorage.setItem(`project-progress-updated-${projectId}`, Date.now().toString());
+    } catch (error) {
+      console.error('Erro ao atualizar progresso:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o progresso do projeto.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleTaskSubmit = editingTaskId ? handleUpdateTask : handleAddTask;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -160,21 +238,37 @@ const Checklist = () => {
             </Button>
           </div>
 
-          <form onSubmit={handleAddTask} className="space-y-4 mb-8">
+          <form onSubmit={handleTaskSubmit} className="flex flex-col gap-2 mb-6">
             <Input
               placeholder="Task title"
               value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
+              onChange={e => setNewTaskTitle(e.target.value)}
               required
             />
             <Textarea
-              placeholder="Task description (optional)"
+              placeholder="Task description (opcional)"
               value={newTaskDescription}
-              onChange={(e) => setNewTaskDescription(e.target.value)}
+              onChange={e => setNewTaskDescription(e.target.value)}
             />
+            <div className="flex gap-2">
+              <Input
+                type="datetime-local"
+                placeholder="Início"
+                value={newTaskStartDate}
+                onChange={e => setNewTaskStartDate(e.target.value)}
+                required
+              />
+              <Input
+                type="datetime-local"
+                placeholder="Fim"
+                value={newTaskEndDate}
+                onChange={e => setNewTaskEndDate(e.target.value)}
+                required
+              />
+            </div>
             <Select value={newTaskCategory} onValueChange={setNewTaskCategory}>
               <SelectTrigger>
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder="Feature" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="feature">Feature</SelectItem>
@@ -183,9 +277,12 @@ const Checklist = () => {
                 <SelectItem value="documentation">Documentation</SelectItem>
               </SelectContent>
             </Select>
-            <Button type="submit" disabled={isLoading || !newTaskTitle.trim()}>
-              {isLoading ? "Adding..." : "Add Task"}
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (editingTaskId ? "Atualizando..." : "Adicionando...") : (editingTaskId ? "Update Task" : "Add Task")}
             </Button>
+            {editingTaskId && (
+              <Button type="button" variant="outline" onClick={() => { setEditingTaskId(null); setNewTaskTitle(""); setNewTaskDescription(""); setNewTaskCategory("feature"); setNewTaskStartDate(""); setNewTaskEndDate(""); }}>Cancelar edição</Button>
+            )}
           </form>
 
           <div className="space-y-2">
@@ -194,6 +291,7 @@ const Checklist = () => {
                 key={task.id}
                 task={task}
                 onToggle={handleToggleTask}
+                onEdit={handleEditTask}
               />
             ))}
             {tasks.length === 0 && (

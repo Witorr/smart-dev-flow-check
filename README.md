@@ -1,73 +1,100 @@
-# Welcome to your Lovable project
+# Smart Dev Flow Check
 
-## Project info
+> **Este projeto foi criado e evoluído com auxílio da plataforma [Lovable.dev](https://lovable.dev), aproveitando recursos de automação, UI moderna e integração de IA para acelerar o desenvolvimento.**
 
-**URL**: https://lovable.dev/projects/92563a14-a969-487f-b372-6bd8ddd79201
+## Visão Geral
 
-## How can I edit this code?
+Smart Dev Flow Check é um gerenciador de projetos e tarefas para times de desenvolvimento, com integração a Supabase, interface moderna, suporte a temas, filtros avançados e integração com APIs externas como Calendly.
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## Principais Funcionalidades
+- **Cadastro e autenticação de usuários** (Supabase Auth)
+- **Criação, edição e exclusão de projetos**
+- **Exclusão de projetos com remoção em cascata de tarefas**
+- **Dashboard com busca e filtro avançado (Drawer lateral)**
+    - Filtragem por tipo de projeto (Backend, Frontend, Full Stack, Mobile)
+    - Filtragem por tecnologias (React, Node.js, TypeScript etc.)
+    - Filtros combináveis e integrados à busca textual
+- **Checklist de tarefas por projeto**
+- **Integração com Calendly** (agendamento de tarefas como eventos)
+- **Transição suave de tema (light/dark)**
+- **UI baseada em shadcn-ui e Tailwind CSS**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/92563a14-a969-487f-b372-6bd8ddd79201) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## Tecnologias Utilizadas
+- **React + Vite + TypeScript**
+- **Supabase** (Auth, Database, Functions)
+- **shadcn-ui** (componentes acessíveis e modernos)
+- **Tailwind CSS**
+- **Lucide React** (ícones)
+- **Calendly API**
+- **Lovable.dev** (plataforma de automação e evolução do projeto)
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## APIs e Integrações
+- **Supabase:** Autenticação, armazenamento de projetos/tarefas, funções serverless (Deno)
+- **Calendly:** Criação de eventos a partir de tarefas do checklist
+- **Lovable.dev:** Evolução do projeto por prompts, deploy automatizado, integração com IA
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## Como Executar Localmente
 
+Pré-requisitos:
+- Node.js (recomenda-se usar [nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
+- npm
+
+Passos:
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# 1. Clone o repositório
+$ git clone <YOUR_GIT_URL>
+$ cd <YOUR_PROJECT_NAME>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# 2. Instale as dependências
+$ npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# 3. Configure as variáveis de ambiente
+$ cp .env.example .env
+# Edite .env com as chaves da sua instância Supabase
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# 4. Rode o servidor de desenvolvimento
+$ npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Acesse: [http://localhost:3000](http://localhost:3000)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## Observações Importantes
+- **Funções Supabase (Deno):**
+    - Os arquivos em `supabase/functions` usam imports Deno-style e podem mostrar erros de tipo no VSCode, mas funcionam normalmente no deploy Supabase.
+    - Ignore esses avisos ou use o plugin Deno no VSCode se desejar lint local.
+- **Integração com Calendly:**
+    - Para usar, salve `calendly_access_token` e `calendly_user_uri` no localStorage do navegador.
+    - Veja instruções no próprio app e neste README.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## Deploy e Evolução
+- O projeto pode ser evoluído via [Lovable.dev](https://lovable.dev/projects/92563a14-a969-487f-b372-6bd8ddd79201) por prompts/IA.
+- Deploy automatizado via Lovable ou manual via Vercel/Netlify se desejar.
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Créditos
+Projeto criado por Witor, com apoio da Lovable.dev e recursos modernos de automação e UI.
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/92563a14-a969-487f-b372-6bd8ddd79201) and click on Share -> Publish.
+## Links Úteis
+- [Lovable Project](https://lovable.dev/projects/92563a14-a969-487f-b372-6bd8ddd79201)
+- [Supabase](https://supabase.com/)
+- [Calendly API](https://developer.calendly.com/api-docs)
+- [shadcn/ui](https://ui.shadcn.com/)
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+> Para dúvidas, sugestões ou contribuir, abra uma issue ou envie um PR!

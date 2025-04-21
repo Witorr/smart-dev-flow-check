@@ -15,16 +15,20 @@ export interface Task {
   is_completed: boolean;
   created_at: string;
   updated_at: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 interface ChecklistItemProps {
   task: Task;
   onToggle: (task: Task, isCompleted: boolean) => void;
+  onEdit?: (task: Task) => void;
 }
 
 const ChecklistItem = ({
   task,
   onToggle,
+  onEdit,
 }: ChecklistItemProps) => {
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -72,31 +76,75 @@ const ChecklistItem = ({
   };
 
   return (
-    <div className="flex items-start space-x-4 p-4 bg-card rounded-lg border">
-      <Checkbox
-        checked={task.is_completed}
-        onCheckedChange={handleToggle}
-        disabled={isUpdating}
-        className="mt-1"
-      />
-      <div className="flex-1 space-y-1">
-        <div className="flex items-center justify-between">
-          <h3 className={`font-medium ${task.is_completed ? 'line-through text-muted-foreground' : ''}`}>
-            {task.title}
+    <div className={cn("border rounded-lg p-4 flex flex-col gap-2 bg-background", isUpdating && "opacity-60")}
+      style={{ minWidth: 0 }}>
+      <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 max-w-full flex-1">
+          <Checkbox
+            checked={task.is_completed}
+            onCheckedChange={handleToggle}
+            disabled={isUpdating}
+            className="shrink-0"
+          />
+          <h3 className="font-semibold text-base truncate max-w-[60%] min-w-0" title={task.title}>
+            {task.is_completed ? <s>{task.title}</s> : task.title}
+            {onEdit && (
+              <button
+                type="button"
+                aria-label="Editar"
+                onClick={() => onEdit(task)}
+                className="ml-2 text-muted-foreground hover:text-primary"
+                style={{ background: "none", border: "none", cursor: "pointer" }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+              </button>
+            )}
           </h3>
-          <Badge variant="secondary" className={`${getCategoryColor(task.category)} text-white`}>
-            {task.category}
-          </Badge>
         </div>
-        {task.description && (
-          <p className={`text-sm text-muted-foreground ${task.is_completed ? 'line-through' : ''}`}>
-            {task.description}
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Last updated: {new Date(task.updated_at).toLocaleString()}
-        </p>
+        <Badge variant="secondary" className={`text-xs shrink-0 whitespace-nowrap ${getCategoryColor(task.category)} text-white`}>
+          {task.category}
+        </Badge>
+        {/* Rótulo "Agende no Calendly" que vira botão */}
+        <span
+          className="ml-2 px-2 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 transition cursor-pointer select-none"
+          onClick={() => {
+            // Extrai a data no formato YYYY-MM-DD
+            let dateParam = '';
+            if (task.start_date) {
+              const d = new Date(task.start_date);
+              // Garante o formato YYYY-MM-DD
+              dateParam = d.toISOString().slice(0, 10);
+            }
+            const prefill = {
+              name: task.title,
+              a1: task.start_date || '', // data/hora completa para pergunta personalizada
+              a2: task.description || ''
+            };
+            // Monta a URL com o parâmetro date correto
+            let url = `https://calendly.com/jwitortech/30min?` + new URLSearchParams(Object.entries(prefill).filter(([_, v]) => v)).toString();
+            if (dateParam) {
+              url += `&date=${dateParam}`;
+            }
+            // @ts-ignore
+            if (window.Calendly) {
+              window.Calendly.initPopupWidget({ url });
+            } else {
+              window.open(url, '_blank');
+            }
+          }}
+        >
+          Agende no Calendly
+        </span>
       </div>
+      {task.description && (
+        <p className={`text-sm text-muted-foreground break-words ${task.is_completed ? 'line-through' : ''}`}
+           style={{ wordBreak: 'break-word' }}>
+          {task.description}
+        </p>
+      )}
+      <p className="text-xs text-muted-foreground">
+        Data agendada: {task.start_date ? new Date(task.start_date).toLocaleString() : 'Não definida'}
+      </p>
     </div>
   );
 };

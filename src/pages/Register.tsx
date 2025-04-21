@@ -23,7 +23,7 @@ const Register = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("As senhas não coincidem");
       return;
     }
     setIsLoading(true);
@@ -36,7 +36,8 @@ const Register = () => {
         },
       });
       if (error) throw error;
-      await signIn(email, password);
+      setError("Conta criada! Verifique seu e-mail para confirmar o cadastro antes de fazer login.");
+      setTimeout(() => navigate('/login'), 2000);
     } catch (error: any) {
       setError(error.message);
     } finally {

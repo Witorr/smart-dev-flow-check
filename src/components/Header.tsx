@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { useEffect } from "react";
+import UserAvatarButton from "@/components/UserAvatarButton";
 
 interface HeaderProps {
   userEmail?: string;
@@ -81,6 +82,7 @@ const Header = ({ userEmail: propUserEmail }: HeaderProps) => {
           <span className="hidden md:inline-block text-sm text-muted-foreground">
             {userEmail}
           </span>
+          <UserAvatarButton />
           <Button 
             variant="ghost" 
             className="hidden md:flex"

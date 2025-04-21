@@ -12,6 +12,10 @@ import Dashboard from "./pages/Dashboard";
 import CreateProject from "./pages/CreateProject";
 import Checklist from "./pages/Checklist";
 import { useAuth } from './hooks/useAuth'
+import { Dialog } from "@radix-ui/react-dialog";
+import { DialogContent } from "@/components/ui/dialog";
+import CalendlyConnect from "@/components/CalendlyConnect";
+import ProfilePage from "@/pages/Profile";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,51 +84,19 @@ const App = () => {
         <BrowserRouter>
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-screen">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+              <span className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mr-4"></span>
+              <span className="text-lg font-semibold text-brand-500">Carregando...</span>
             </div>
           }>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route 
-                path="/login" 
-                element={
-                  <PublicRoute>
-                    <Login />
-                  </PublicRoute>
-                } 
-              />
-              <Route 
-                path="/register" 
-                element={
-                  <PublicRoute>
-                    <Register />
-                  </PublicRoute>
-                } 
-              />
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/create-project" 
-                element={
-                  <ProtectedRoute>
-                    <CreateProject />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/project/:id" 
-                element={
-                  <ProtectedRoute>
-                    <Checklist />
-                  </ProtectedRoute>
-                } 
-              />
+              <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+              <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/create-project" element={<ProtectedRoute><CreateProject /></ProtectedRoute>} />
+              <Route path="/project/:projectId" element={<ProtectedRoute><Checklist /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/conectar-calendly" element={<CalendlyConnect />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
