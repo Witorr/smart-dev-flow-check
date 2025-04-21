@@ -1,18 +1,18 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const navigate = useNavigate();
-  const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isLoading && isAuthenticated) {
       navigate("/dashboard");
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -112,7 +112,7 @@ const Index = () => {
 
       <footer className="border-t py-6">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          © 2023 Checklist Inteligente de Desenvolvimento. Todos os direitos reservados.
+          2023 Checklist Inteligente de Desenvolvimento. Todos os direitos reservados.
         </div>
       </footer>
     </div>

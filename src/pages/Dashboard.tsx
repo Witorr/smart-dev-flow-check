@@ -134,9 +134,9 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold tracking-tight">Meus Projetos</h1>
             <p className="text-muted-foreground">Gerencie seus projetos e checklists</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button 
-              className="bg-brand-500 hover:bg-brand-600"
+              className="bg-brand-500 hover:bg-brand-600 w-full sm:w-auto"
               onClick={() => navigate("/create-project")}
             >
               <PlusIcon className="h-4 w-4 mr-2" />
@@ -144,7 +144,7 @@ const Dashboard = () => {
             </Button>
             <Button 
               variant="outline"
-              className="border-brand-500 text-brand-500 hover:bg-brand-50"
+              className="border-brand-500 text-brand-500 hover:bg-brand-50 w-full sm:w-auto"
               onClick={() => setShowSmartModal(true)}
             >
               🤖 Criar Checklist Inteligente
