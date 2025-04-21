@@ -7,6 +7,7 @@ import { CHECKLIST_TEMPLATES, BASE_CHECKLIST } from "@/checklistTemplates";
 import { format } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import Player from "lottie-react";
+import robotLoader from "../../public/robot-loader.json";
 
 const TECHNOLOGIES = ["React", "Node.js", "TypeScript", "Python", "Django", "Laravel", "Vue.js", "Flutter", "Java", "C#", "Go"];
 
@@ -91,7 +92,7 @@ export default function SmartChecklistModal({ open, onClose, onSubmit }: SmartCh
             <Player
               autoplay
               loop
-              animationData={require("../../public/robot-loader.json")}
+              animationData={robotLoader}
               style={{ height: 180, width: 180 }}
             />
             <span className="mt-4 text-brand-500 font-semibold text-lg animate-pulse">Seu checklist inteligente está sendo criado...</span>
